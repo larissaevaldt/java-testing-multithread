@@ -3,9 +3,8 @@ package iloveyouboss;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -67,6 +66,37 @@ public class ProfileMatcherTest {
         verify(listener).foundMatch(matchingProfile, set);
     }
 
+    @Test
+    public void gathersMatchingProfiles() {
+        // 1) Create a set of strings to store profile IDs from MatchSet objects that the listener receives.
+        Set<String> processedSets = Collections.synchronizedSet(new HashSet<>());
+
+        // 2) Define processFunction(), which will supplant the production version of process.
+        BiConsumer<MatchListener, MatchSet> processFunction = (listener, set) -> {
+            // 3) For each callback to the listener, add the MatchSet’s profile ID to processedSets.
+            processedSets.add(set.getProfileId());
+        };
+
+        // 4) Using a helper method, create a pile of MatchSet objects for testing.
+        List<MatchSet> matchSets = createMatchSets(100);
+
+        // 5) Call the version of findMatchingProfiles that takes a function as an argument,
+        // and pass it the processFunction() implementation.
+        matcher.findMatchingProfiles(
+                criteria, listener, matchSets, processFunction
+        );
+
+        // 6) Grab the ExecutorService from the matcher, and loop until
+        // it indicates that all of its threads have completed execution.
+        while(!matcher.getExecutor().isTerminated());
+
+        // 7) Verify that the collection of processedSets (representing profile IDs captured in the listener)
+        // matches the profile IDs from all of the MatchSet objects created in the test.
+        assertThat(processedSets,
+                equalTo(matchSets.stream().map(MatchSet::getProfileId).collect(Collectors.toSet())));
+
+    }
+
     // Utility functions to create the profiles and answers
     private Profile createMatchingProfile(String name) {
         Profile profile = new Profile(name);
@@ -83,5 +113,11 @@ public class ProfileMatcherTest {
     }
     private Answer nonMatchingAnswer() {
         return new Answer(question, Bool.FALSE);
+    }
+    private List<MatchSet> createMatchSets(int count) {
+        List<MatchSet> sets = new ArrayList<>();
+        for (int i = 0; i < count; i++)
+            sets.add(new MatchSet(String.valueOf(i), null, null));
+        return sets;
     }
 }
