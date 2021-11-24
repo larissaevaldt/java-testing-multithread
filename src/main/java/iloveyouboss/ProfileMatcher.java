@@ -42,12 +42,7 @@ public class ProfileMatcher {
       //For each match set,
       for (MatchSet set: collectMatchSets(criteria)) {
          // create and spawn a thread that
-         Runnable runnable = () -> {
-            // if a matches request to the MatchSet returns true
-            if (set.matches())
-               // send the profile and corresponding MatchSet object to the MatchListener
-               listener.foundMatch(profiles.get(set.getProfileId()), set);
-         };
+         Runnable runnable = () -> process(listener, set);
          executor.execute(runnable);
       }
       executor.shutdown();
@@ -64,5 +59,18 @@ public class ProfileMatcher {
               .map(profile -> profile.getMatchSet(criteria))
               .collect(Collectors.toList());
       return matchSets;
+   }
+
+   /**
+    * extract the application-specific logic that
+    * sends matching profile information to a listener
+    * @param listener
+    * @param set
+    */
+   void process(MatchListener listener, MatchSet set) {
+      // if a matches request to the MatchSet returns true
+      // send the profile and corresponding MatchSet object to the MatchListener
+      if (set.matches())
+         listener.foundMatch(profiles.get(set.getProfileId()), set);
    }
 }
