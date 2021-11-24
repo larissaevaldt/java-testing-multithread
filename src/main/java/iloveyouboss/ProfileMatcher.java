@@ -27,16 +27,20 @@ public class ProfileMatcher {
       profiles.put(profile.getId(), profile);
    }
 
+   /**
+    * We need the application to be responsive, so we designed the findMatchingProfiles() method to
+    * calculate matches in the context of separate threads. Further, rather than block the client
+    * until all processing is complete, we instead designed findMatchingProfiles() to take a MatchListener argument.
+    * Each matching profile gets returned via the MatchListener method foundMatch().
+    * @param criteria
+    * @param listener
+    */
    public void findMatchingProfiles(Criteria criteria, MatchListener listener) {
       ExecutorService executor = 
             Executors.newFixedThreadPool(DEFAULT_POOL_SIZE);
-      //  collect a list of MatchSet instances for each profile
-      List<MatchSet> matchSets = profiles.values().stream()
-            .map(profile -> profile.getMatchSet(criteria)) 
-            .collect(Collectors.toList());
 
       //For each match set,
-      for (MatchSet set: matchSets) {
+      for (MatchSet set: collectMatchSets(criteria)) {
          // create and spawn a thread that
          Runnable runnable = () -> {
             // if a matches request to the MatchSet returns true
@@ -47,5 +51,18 @@ public class ProfileMatcher {
          executor.execute(runnable);
       }
       executor.shutdown();
+   }
+
+   /**
+    * extracting the logic that gathers MatchSet instances
+    * @param criteria
+    * @return
+    */
+   List<MatchSet> collectMatchSets(Criteria criteria) {
+      //collect a list of MatchSet instances for each profile
+      List<MatchSet> matchSets = profiles.values().stream()
+              .map(profile -> profile.getMatchSet(criteria))
+              .collect(Collectors.toList());
+      return matchSets;
    }
 }
