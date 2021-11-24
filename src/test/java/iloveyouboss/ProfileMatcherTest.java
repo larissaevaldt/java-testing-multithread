@@ -67,6 +67,16 @@ public class ProfileMatcherTest {
     }
 
     @Test
+    public void processDoesNotNotifyListenerWhenNoMatch() {
+        matcher.add(nonMatchingProfile);
+        MatchSet set = nonMatchingProfile.getMatchSet(criteria);
+
+        matcher.process(listener, set);
+
+        verify(listener, never()).foundMatch(nonMatchingProfile,set);
+    }
+
+    @Test
     public void gathersMatchingProfiles() {
         // 1) Create a set of strings to store profile IDs from MatchSet objects that the listener receives.
         Set<String> processedSets = Collections.synchronizedSet(new HashSet<>());
